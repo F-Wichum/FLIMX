@@ -91,8 +91,6 @@ classdef importWizard < handle
                     end
                 end
                 this.setSubject(study,subject);
-%                 set(this.visHandles.radioExistingSubject,'Value',0);
-%                 set(this.visHandles.radioNewSubject,'Value',1);
                 this.setupGUI();
             end
         end
@@ -102,8 +100,7 @@ classdef importWizard < handle
             success = false;
             if(isempty(fn))
                 return;
-            end            
-            %subject = this.FLIMXObj.fdt.getSubject4Import(this.currentStudy,subName);
+            end
             this.measurementObj = measurementReadRawData(this.FLIMXObj.paramMgr);
             this.measurementObj.setSourceFile(fn);
             if(this.isOpenVisWnd())
@@ -118,7 +115,7 @@ classdef importWizard < handle
                 if(ROIVec(1) > 5 || ROIVec(3) > 5 || ROIVec(2) < this.myMeasurement.rawXSz-5 || ROIVec(4) < this.myMeasurement.rawYSz-5)
                     this.finalROIVec = ROIVec;
                 end
-                this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo            
+                this.isDirty(1) = true; %flags which part was changed, 1-roi, 2-irf, 3-binning, 4-roi mode, 5-fileInfo
                 this.myMeasurement.setROICoord(this.finalROIVec);
                 x = this.myMeasurement.rawXSz;
                 if(x < 256)
@@ -126,7 +123,8 @@ classdef importWizard < handle
                 end
                 this.myMeasurement.pixelResolution = 1000*8.8/x;
             end
-            %this.currentSubject = subName;
+            %guess position of the eye            
+            this.myMeasurement.guessEyePosition();
             success = true;
         end
         
@@ -417,7 +415,6 @@ classdef importWizard < handle
                 subject = this.FLIMXObj.curSubject.getDatasetName();
             end
             %try to find subject in study
-            %if(strcmp(subject,this.FLIMXObj.FLIMFitGUI.currentSubject))
             if(any(strcmp(subject,this.FLIMXObj.fdt.getSubjectsNames(study,FDTree.defaultConditionName()))))
                 %this is not a new file, we repick e.g. the ROI
                 set(this.visHandles.radioExistingSubject,'Value',1);
@@ -462,7 +459,7 @@ classdef importWizard < handle
             set(this.visHandles.popupStudySel,'String',this.FLIMXObj.fdt.getStudyNames());
             if(get(this.visHandles.radioExistingStudy,'Value'))
                 set(this.visHandles.popupStudySel,'Visible','on');
-                set(this.visHandles.editStudyName,'Visible','off');                
+                set(this.visHandles.editStudyName,'Visible','off');
             else
                 set(this.visHandles.popupStudySel,'Visible','off');
                 set(this.visHandles.editStudyName,'Visible','on');
@@ -477,13 +474,13 @@ classdef importWizard < handle
                 set(this.visHandles.radioExistingSubject,'Value',0,'Enable','off');
                 set(this.visHandles.radioNewSubject,'Value',1);
                 set(this.visHandles.popupSubjectSel,'String','-none-','Value',1,'Enable','off');
-            else                
+            else
                 set(this.visHandles.popupSubjectSel,'String',str,'Value',min(length(str),get(this.visHandles.popupSubjectSel,'Value')));
                 set(this.visHandles.radioExistingSubject,'Enable','on');
             end
             if(get(this.visHandles.radioExistingSubject,'Value'))
                 set(this.visHandles.popupSubjectSel,'Visible','on');
-                set(this.visHandles.editSubjectName,'Visible','off');   
+                set(this.visHandles.editSubjectName,'Visible','off');
                 %set subject popup to current subject
                 idx = find(strcmp(str,this.currentSubject));
                 if(~isempty(idx))
@@ -492,10 +489,6 @@ classdef importWizard < handle
             else
                 set(this.visHandles.popupSubjectSel,'Visible','off');
                 set(this.visHandles.editSubjectName,'Visible','on');
-%                 str = get(this.visHandles.popupSubjectSel,'String');
-%                 if(~isempty(str) && iscell(str))
-%                     set(this.visHandles.editSubjectName,'String',str{get(this.visHandles.popupSubjectSel,'Value')});
-%                 end
             end
             set(this.visHandles.editFile,'String',this.myMeasurement.getSourceFile());
             this.axesMgr.setReverseYDirFlag(this.FLIMXObj.paramMgr.getParamSection('general').reverseYDir);
